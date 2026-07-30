@@ -1,6 +1,7 @@
 package com.desafiotecnico.academico.turma.domain;
 
 import com.desafiotecnico.academico.disciplina.domain.Disciplina;
+import com.desafiotecnico.academico.shared.exception.ConflictException;
 import jakarta.persistence.*;
 
 @Entity
@@ -29,6 +30,26 @@ public class Turma {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private TurmaStatus status;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
+    public void consumirVaga() {
+        if (vagasDisponiveis == null || vagasDisponiveis <= 0) {
+            throw new ConflictException("TURMA_SEM_VAGAS", "Nao ha vagas disponiveis para a turma informada.");
+        }
+        vagasDisponiveis = vagasDisponiveis - 1;
+    }
+
+    public void liberarVaga() {
+        if (vagasDisponiveis == null) {
+            vagasDisponiveis = 0;
+        }
+        if (capacidade != null && vagasDisponiveis < capacidade) {
+            vagasDisponiveis = vagasDisponiveis + 1;
+        }
+    }
 
     public Long getId() {
         return id;

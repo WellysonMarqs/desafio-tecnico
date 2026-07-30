@@ -31,6 +31,7 @@ CREATE TABLE turmas (
     capacidade INTEGER NOT NULL CHECK (capacidade > 0),
     vagas_disponiveis INTEGER NOT NULL CHECK (vagas_disponiveis >= 0),
     status VARCHAR(20) NOT NULL,
+    version BIGINT NOT NULL DEFAULT 0,
     CONSTRAINT uk_turma_codigo UNIQUE (codigo),
     CONSTRAINT fk_turma_disciplina FOREIGN KEY (disciplina_id) REFERENCES disciplinas (id),
     CONSTRAINT ck_turma_status CHECK (status IN ('ABERTA', 'FECHADA')),

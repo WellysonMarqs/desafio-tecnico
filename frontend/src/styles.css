@@ -291,6 +291,77 @@ th {
   justify-items: start;
 }
 
+.matriculas-grid {
+  grid-template-columns: minmax(20rem, 24rem) minmax(0, 1fr);
+}
+
+.query-form,
+.query-feedback-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.query-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 1rem;
+}
+
+.query-form label {
+  display: grid;
+  gap: 0.35rem;
+  color: #28405f;
+}
+
+.query-form select {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid #bfd0e5;
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  background: #fff;
+}
+
+.query-feedback-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.query-panel {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.section-heading--compact {
+  margin-bottom: 0;
+}
+
+.selection-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  background: #eef4fb;
+  color: #28405f;
+  font-size: 0.875rem;
+}
+
+.inline-hint {
+  border: 1px solid #d7e2f0;
+  background: #f8fbff;
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  color: #28405f;
+}
+
+.table-primary {
+  font-weight: 600;
+}
+
+.table-secondary {
+  color: #48617e;
+  font-size: 0.9rem;
+}
+
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -305,7 +376,9 @@ th {
 
 @media (max-width: 960px) {
   .content-grid,
-  .feature-grid {
+  .feature-grid,
+  .matriculas-grid,
+  .query-feedback-grid {
     grid-template-columns: 1fr;
   }
 

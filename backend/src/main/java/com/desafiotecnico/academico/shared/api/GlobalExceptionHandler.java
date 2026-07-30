@@ -1,5 +1,6 @@
 package com.desafiotecnico.academico.shared.api;
 
+import com.desafiotecnico.academico.shared.exception.BusinessRuleException;
 import com.desafiotecnico.academico.shared.exception.ConflictException;
 import com.desafiotecnico.academico.shared.exception.ResourceNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,9 +25,12 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.NOT_FOUND, exception.getCode(), exception.getMessage(), request);
     }
 
-    @ExceptionHandler(ConflictException.class)
-    public ResponseEntity<ApiError> handleConflict(ConflictException exception, HttpServletRequest request) {
-        return buildError(HttpStatus.CONFLICT, exception.getCode(), exception.getMessage(), request);
+    @ExceptionHandler({ConflictException.class, BusinessRuleException.class})
+    public ResponseEntity<ApiError> handleConflict(RuntimeException exception, HttpServletRequest request) {
+        String code = exception instanceof ConflictException conflictException
+                ? conflictException.getCode()
+                : ((BusinessRuleException) exception).getCode();
+        return buildError(HttpStatus.CONFLICT, code, exception.getMessage(), request);
     }
 
     @ExceptionHandler({MethodArgumentNotValidException.class, ConstraintViolationException.class, IllegalArgumentException.class})

@@ -54,7 +54,8 @@ public class AlunoService {
         alunoRepository.delete(aluno);
     }
 
-    private Aluno getEntity(Long id) {
+    @Transactional(readOnly = true)
+    public Aluno getEntity(Long id) {
         return alunoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("ALUNO_NAO_ENCONTRADO", "Aluno nao encontrado."));
     }

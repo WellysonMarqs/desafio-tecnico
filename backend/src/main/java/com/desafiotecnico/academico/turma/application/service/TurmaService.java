@@ -65,6 +65,7 @@ public class TurmaService {
         turmaRepository.delete(turma);
     }
 
+    @Transactional(readOnly = true)
     public Turma getEntity(Long id) {
         return turmaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("TURMA_NAO_ENCONTRADA", "Turma nao encontrada."));
