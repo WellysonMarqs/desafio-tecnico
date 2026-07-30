@@ -23,7 +23,13 @@ spring:
       simple:
         auto-startup: false
 management:
+  health:
+    rabbit:
+      enabled: false
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics
+app:
+  outbox:
+    publisher-delay-ms: 60000

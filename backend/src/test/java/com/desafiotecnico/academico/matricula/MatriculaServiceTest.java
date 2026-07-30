@@ -2,6 +2,8 @@ package com.desafiotecnico.academico.matricula;
 
 import com.desafiotecnico.academico.aluno.application.service.AlunoService;
 import com.desafiotecnico.academico.aluno.domain.Aluno;
+import com.desafiotecnico.academico.eventos.application.service.MatriculaEventoOutboxService;
+import com.desafiotecnico.academico.eventos.domain.MatriculaEventoTipo;
 import com.desafiotecnico.academico.matricula.application.dto.MatriculaRequest;
 import com.desafiotecnico.academico.matricula.application.dto.MatriculaResponse;
 import com.desafiotecnico.academico.matricula.application.mapper.MatriculaMapper;
@@ -47,6 +49,9 @@ class MatriculaServiceTest {
     @Mock
     private TurmaService turmaService;
 
+    @Mock
+    private MatriculaEventoOutboxService matriculaEventoOutboxService;
+
     @InjectMocks
     private MatriculaService matriculaService;
 
@@ -60,13 +65,14 @@ class MatriculaServiceTest {
         when(alunoService.getEntity(1L)).thenReturn(aluno);
         when(turmaService.getEntity(10L)).thenReturn(turma);
         when(matriculaRepository.existsByAlunoIdAndTurmaId(1L, 10L)).thenReturn(false);
-        when(matriculaRepository.save(any(Matricula.class))).thenReturn(matriculaSalva);
+        when(matriculaRepository.saveAndFlush(any(Matricula.class))).thenReturn(matriculaSalva);
         when(matriculaMapper.toResponse(matriculaSalva)).thenReturn(response);
 
         MatriculaResponse created = matriculaService.create(new MatriculaRequest(1L, 10L));
 
         assertEquals(MatriculaStatus.PENDENTE, created.status());
-        verify(matriculaRepository).save(any(Matricula.class));
+        verify(matriculaRepository).saveAndFlush(any(Matricula.class));
+        verify(matriculaEventoOutboxService).registrar(org.mockito.ArgumentMatchers.eq(MatriculaEventoTipo.MATRICULA_CRIADA), org.mockito.ArgumentMatchers.any(Matricula.class), org.mockito.ArgumentMatchers.anyString());
     }
 
     @Test
@@ -101,6 +107,7 @@ class MatriculaServiceTest {
         assertEquals(MatriculaStatus.CONFIRMADA, confirmed.status());
         assertEquals(0, turma.getVagasDisponiveis());
         assertNotNull(matricula.getConfirmadaEm());
+        verify(matriculaEventoOutboxService).registrar(org.mockito.ArgumentMatchers.eq(MatriculaEventoTipo.MATRICULA_CONFIRMADA), org.mockito.ArgumentMatchers.same(matricula), org.mockito.ArgumentMatchers.anyString());
     }
 
     @Test
@@ -142,14 +149,16 @@ class MatriculaServiceTest {
 
         when(matriculaRepository.findById(99L)).thenReturn(Optional.of(matricula));
         when(turmaService.getEntity(10L)).thenReturn(turma);
-        when(matriculaRepository.save(matricula)).thenReturn(matricula);
+        when(matriculaRepository.saveAndFlush(matricula)).thenReturn(matricula);
         when(matriculaMapper.toResponse(matricula)).thenReturn(response);
 
         MatriculaResponse canceled = matriculaService.cancel(99L);
 
         assertEquals(MatriculaStatus.CANCELADA, canceled.status());
+        verify(matriculaEventoOutboxService).registrar(org.mockito.ArgumentMatchers.eq(MatriculaEventoTipo.MATRICULA_CANCELADA), org.mockito.ArgumentMatchers.same(matricula), org.mockito.ArgumentMatchers.anyString());
         assertEquals(1, turma.getVagasDisponiveis());
         assertNotNull(matricula.getCanceladaEm());
+        verify(matriculaEventoOutboxService).registrar(org.mockito.ArgumentMatchers.eq(MatriculaEventoTipo.MATRICULA_CANCELADA), org.mockito.ArgumentMatchers.same(matricula), org.mockito.ArgumentMatchers.anyString());
     }
 
     @Test
@@ -161,7 +170,7 @@ class MatriculaServiceTest {
 
         when(matriculaRepository.findById(99L)).thenReturn(Optional.of(matricula));
         when(turmaService.getEntity(10L)).thenReturn(turma);
-        when(matriculaRepository.save(matricula)).thenReturn(matricula);
+        when(matriculaRepository.saveAndFlush(matricula)).thenReturn(matricula);
         when(matriculaMapper.toResponse(matricula)).thenReturn(response);
 
         MatriculaResponse canceled = matriculaService.cancel(99L);

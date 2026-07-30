@@ -1,5 +1,6 @@
 package com.desafiotecnico.academico.shared.api;
 
+import com.desafiotecnico.academico.shared.correlation.CorrelationIdContext;
 import com.desafiotecnico.academico.shared.exception.BusinessRuleException;
 import com.desafiotecnico.academico.shared.exception.ConflictException;
 import com.desafiotecnico.academico.shared.exception.ResourceNotFoundException;
@@ -17,8 +18,6 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
-    private static final String CORRELATION_HEADER = "X-Correlation-Id";
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiError> handleNotFound(ResourceNotFoundException exception, HttpServletRequest request) {
@@ -69,7 +68,7 @@ public class GlobalExceptionHandler {
                 code,
                 message,
                 request.getRequestURI(),
-                request.getHeader(CORRELATION_HEADER)
+                CorrelationIdContext.get()
         );
         return ResponseEntity.status(status).body(body);
     }
