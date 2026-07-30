@@ -14,6 +14,7 @@
             "outputPath": "dist/desafio-tecnico-frontend",
             "index": "src/index.html",
             "browser": "src/main.ts",
+            "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
             "assets": [
               {
@@ -22,6 +23,16 @@
               }
             ],
             "styles": ["src/styles.css"]
+          },
+          "configurations": {
+            "production": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ]
+            }
           }
         },
         "serve": {
@@ -30,10 +41,29 @@
             "buildTarget": "desafio-tecnico-frontend:build"
           }
         },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": ["zone.js", "zone.js/testing"],
+            "tsConfig": "tsconfig.spec.json",
+            "karmaConfig": "karma.conf.cjs",
+            "main": "src/test.ts",
+            "styles": ["src/styles.css"],
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "src/assets"
+              }
+            ]
+          }
+        },
         "lint": {
           "builder": "@angular-devkit/build-angular:tslint"
         }
       }
     }
+  },
+  "cli": {
+    "analytics": "7f9dd2e4-d794-46e1-95f1-cfe2cd52cd0a"
   }
 }
