@@ -1,7 +1,7 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
 import { finalize } from 'rxjs';
 
 import { ApiRequestError } from '../../core/api/api-error.interceptor';
@@ -10,7 +10,7 @@ import { PageHeaderComponent } from '../../shared/ui/page-header.component';
 import { PageStateComponent } from '../../shared/ui/page-state.component';
 import { Aluno } from '../alunos/aluno.model';
 import { AlunosService } from '../alunos/alunos.service';
-import { Matricula, MatriculaPayload } from './matricula.model';
+import { Matricula } from './matricula.model';
 import { MatriculasService } from './matriculas.service';
 import { Turma } from '../turmas/turma.model';
 import { TurmasService } from '../turmas/turmas.service';
@@ -26,99 +26,40 @@ interface MatriculaViewModel extends Matricula {
 @Component({
   selector: 'app-matriculas-page',
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    DatePipe,
-    PageHeaderComponent,
-    PageStateComponent,
-    FeedbackBannerComponent
-  ],
+  imports: [CommonModule, ReactiveFormsModule, DatePipe, PageHeaderComponent, PageStateComponent, FeedbackBannerComponent],
   template: `
     <section class="feature-page">
       <app-page-header
-        title="Matriculas"
-        description="Matricule alunos em turmas, confirme ou cancele matriculas e consulte os registros por aluno e por turma."
+        title="Listagem de matriculas"
+        description="Consulte matriculas por aluno ou turma e execute confirmacao e cancelamento a partir da listagem."
       />
 
       <app-feedback-banner [message]="successMessage()" tone="success" />
       <app-feedback-banner [message]="errorMessage()" tone="error" />
 
-      <div class="feature-grid matriculas-grid">
-        <section class="card" aria-labelledby="matricula-form-title">
-          <div class="section-heading">
-            <h3 id="matricula-form-title">Nova matricula</h3>
-            <button type="button" class="ghost-button" (click)="reloadBaseData()" [disabled]="baseLoading() || actionInProgress()">
-              Recarregar base
-            </button>
+      <section class="card" aria-labelledby="consulta-title">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Consultas operacionais</p>
+            <h3 id="consulta-title">Listagem e acoes</h3>
           </div>
+        </div>
 
-          @if (baseLoading()) {
-            <app-page-state title="Carregando base da matricula" description="Buscando alunos e turmas disponiveis para iniciar a operacao." />
-          } @else if (baseLoadError()) {
-            <app-page-state
-              title="Falha ao carregar alunos e turmas"
-              [description]="errorMessage() || 'Verifique a disponibilidade da API antes de matricular um aluno.'"
-              tone="error"
-              actionLabel="Tentar novamente"
-              [action]="reloadBaseData"
-            />
-          } @else if (!alunoOptions().length || !turmaOptions().length) {
-            <app-page-state
-              title="Cadastros base incompletos"
-              description="E necessario ter ao menos um aluno e uma turma cadastrados para iniciar uma matricula."
-            />
-          } @else {
-            <form [formGroup]="form" (ngSubmit)="submit()" class="entity-form">
-              <label>
-                <span>Aluno</span>
-                <select formControlName="alunoId">
-                  <option value="">Selecione um aluno</option>
-                  @for (aluno of alunoOptions(); track aluno.id) {
-                    <option [value]="aluno.id">{{ aluno.nome }} · {{ aluno.matricula }}</option>
-                  }
-                </select>
-              </label>
-
-              <label>
-                <span>Turma</span>
-                <select formControlName="turmaId">
-                  <option value="">Selecione uma turma</option>
-                  @for (turma of turmaOptions(); track turma.id) {
-                    <option [value]="turma.id">
-                      {{ turma.codigo }} · {{ turma.status }} · {{ turma.vagasDisponiveis }} vaga(s)
-                    </option>
-                  }
-                </select>
-              </label>
-
-              @if (selectedTurmaSummary()) {
-                <div class="inline-hint" aria-live="polite">
-                  <strong>Turma selecionada:</strong>
-                  {{ selectedTurmaSummary() }}
-                </div>
-              }
-
-              @if (form.invalid && form.touched) {
-                <p class="field-error" role="alert">Selecione um aluno e uma turma para criar a matricula.</p>
-              }
-
-              <button type="submit" [disabled]="form.invalid || actionInProgress()">
-                {{ actionInProgress() ? 'Processando...' : 'Criar matricula pendente' }}
-              </button>
-            </form>
-          }
-        </section>
-
-        <section class="card" aria-labelledby="consulta-title">
-          <div class="section-heading">
-            <h3 id="consulta-title">Consultas</h3>
-          </div>
-
+        @if (baseLoading()) {
+          <app-page-state title="Carregando base da consulta" description="Buscando alunos e turmas disponiveis para filtrar matriculas." />
+        } @else if (baseLoadError()) {
+          <app-page-state
+            title="Falha ao carregar alunos e turmas"
+            [description]="errorMessage() || 'Verifique a disponibilidade da API antes de consultar matriculas.'"
+            tone="error"
+            actionLabel="Tentar novamente"
+            [action]="reloadBaseData"
+          />
+        } @else {
           <form [formGroup]="queryForm" class="query-form" (ngSubmit)="$event.preventDefault()">
             <label>
               <span>Matriculas por aluno</span>
-              <select formControlName="alunoId" (change)="handleAlunoSelection()" [disabled]="baseLoading() || !alunoOptions().length">
+              <select formControlName="alunoId" (change)="handleAlunoSelection()" [disabled]="!alunoOptions().length">
                 <option value="">Selecione um aluno</option>
                 @for (aluno of alunoOptions(); track aluno.id) {
                   <option [value]="aluno.id">{{ aluno.nome }} · {{ aluno.matricula }}</option>
@@ -128,7 +69,7 @@ interface MatriculaViewModel extends Matricula {
 
             <label>
               <span>Matriculas por turma</span>
-              <select formControlName="turmaId" (change)="handleTurmaSelection()" [disabled]="baseLoading() || !turmaOptions().length">
+              <select formControlName="turmaId" (change)="handleTurmaSelection()" [disabled]="!turmaOptions().length">
                 <option value="">Selecione uma turma</option>
                 @for (turma of turmaOptions(); track turma.id) {
                   <option [value]="turma.id">{{ turma.codigo }} · {{ turma.status }}</option>
@@ -185,22 +126,16 @@ interface MatriculaViewModel extends Matricula {
                           <td>{{ matricula.vagasDisponiveis }}</td>
                           <td>{{ matricula.criadaEm ? (matricula.criadaEm | date: 'dd/MM/yyyy HH:mm') : '-' }}</td>
                           <td class="actions-cell">
-                            <button
-                              type="button"
-                              class="ghost-button"
-                              (click)="confirmFromAluno(matricula)"
-                              [disabled]="actionInProgress() || matricula.status !== 'PENDENTE'"
-                            >
-                              Confirmar
-                            </button>
-                            <button
-                              type="button"
-                              class="danger-button"
-                              (click)="cancelFromAluno(matricula)"
-                              [disabled]="actionInProgress() || matricula.status === 'CANCELADA'"
-                            >
-                              Cancelar
-                            </button>
+                            @if (matricula.status === 'PENDENTE') {
+                              <button type="button" class="ghost-button" (click)="confirmFromAluno(matricula)" [disabled]="actionInProgress()">
+                                Confirmar
+                              </button>
+                            }
+                            @if (matricula.status !== 'CANCELADA') {
+                              <button type="button" class="danger-button" (click)="cancelFromAluno(matricula)" [disabled]="actionInProgress()">
+                                Cancelar
+                              </button>
+                            }
                           </td>
                         </tr>
                       }
@@ -263,22 +198,16 @@ interface MatriculaViewModel extends Matricula {
                           </td>
                           <td>{{ matricula.criadaEm ? (matricula.criadaEm | date: 'dd/MM/yyyy HH:mm') : '-' }}</td>
                           <td class="actions-cell">
-                            <button
-                              type="button"
-                              class="ghost-button"
-                              (click)="confirmFromTurma(matricula)"
-                              [disabled]="actionInProgress() || matricula.status !== 'PENDENTE'"
-                            >
-                              Confirmar
-                            </button>
-                            <button
-                              type="button"
-                              class="danger-button"
-                              (click)="cancelFromTurma(matricula)"
-                              [disabled]="actionInProgress() || matricula.status === 'CANCELADA'"
-                            >
-                              Cancelar
-                            </button>
+                            @if (matricula.status === 'PENDENTE') {
+                              <button type="button" class="ghost-button" (click)="confirmFromTurma(matricula)" [disabled]="actionInProgress()">
+                                Confirmar
+                              </button>
+                            }
+                            @if (matricula.status !== 'CANCELADA') {
+                              <button type="button" class="danger-button" (click)="cancelFromTurma(matricula)" [disabled]="actionInProgress()">
+                                Cancelar
+                              </button>
+                            }
                           </td>
                         </tr>
                       }
@@ -288,8 +217,8 @@ interface MatriculaViewModel extends Matricula {
               }
             </section>
           </div>
-        </section>
-      </div>
+        }
+      </section>
     </section>
   `
 })
@@ -306,7 +235,7 @@ export class MatriculasPageComponent {
   readonly baseLoadError = signal(false);
   readonly actionInProgress = signal(false);
   readonly errorMessage = signal('');
-  readonly successMessage = signal('');
+  readonly successMessage = signal(typeof history.state?.successMessage === 'string' ? history.state.successMessage : '');
 
   readonly matriculasAluno = signal<Matricula[]>([]);
   readonly matriculasTurma = signal<Matricula[]>([]);
@@ -332,15 +261,6 @@ export class MatriculasPageComponent {
     return turma ? `${turma.codigo} · ${turma.status} · ${turma.vagasDisponiveis} vaga(s)` : '';
   });
 
-  readonly selectedTurmaSummary = computed(() => {
-    const turma = this.turmas().find(item => item.id === Number(this.form.controls.turmaId.value));
-    if (!turma) {
-      return '';
-    }
-
-    return `${turma.codigo} esta ${turma.status === 'ABERTA' ? 'aberta' : 'fechada'} com ${turma.vagasDisponiveis} vaga(s) disponivel(is).`;
-  });
-
   readonly matriculasPorAluno = computed<MatriculaViewModel[]>(() =>
     this.matriculasAluno().map(matricula => this.enrichMatricula(matricula))
   );
@@ -348,11 +268,6 @@ export class MatriculasPageComponent {
   readonly matriculasPorTurma = computed<MatriculaViewModel[]>(() =>
     this.matriculasTurma().map(matricula => this.enrichMatricula(matricula))
   );
-
-  readonly form = this.fb.nonNullable.group({
-    alunoId: [0, [Validators.required, Validators.min(1)]],
-    turmaId: [0, [Validators.required, Validators.min(1)]]
-  });
 
   readonly queryForm = this.fb.nonNullable.group({
     alunoId: [0],
@@ -412,45 +327,6 @@ export class MatriculasPageComponent {
         }
       });
   };
-
-  submit(): void {
-    this.form.markAllAsTouched();
-    this.errorMessage.set('');
-    this.successMessage.set('');
-
-    if (this.form.invalid) {
-      return;
-    }
-
-    const payload: MatriculaPayload = {
-      alunoId: Number(this.form.controls.alunoId.value),
-      turmaId: Number(this.form.controls.turmaId.value)
-    };
-
-    this.actionInProgress.set(true);
-
-    this.matriculasService
-      .create(payload)
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.actionInProgress.set(false))
-      )
-      .subscribe({
-        next: matricula => {
-          this.successMessage.set(`Matricula ${matricula.id} criada com status ${matricula.status}.`);
-          this.form.reset({ alunoId: 0, turmaId: 0 });
-          if (this.selectedAlunoId() === matricula.alunoId) {
-            this.fetchMatriculasByAluno(matricula.alunoId);
-          }
-          if (this.selectedTurmaId() === matricula.turmaId) {
-            this.fetchMatriculasByTurma(matricula.turmaId);
-          }
-        },
-        error: error => {
-          this.errorMessage.set(this.describeError(error));
-        }
-      });
-  }
 
   handleAlunoSelection(): void {
     const alunoId = Number(this.queryForm.controls.alunoId.value);
@@ -553,17 +429,11 @@ export class MatriculasPageComponent {
   }
 
   private confirmMatricula(matricula: MatriculaViewModel): void {
-    this.runMatriculaAction(
-      this.matriculasService.confirm(matricula.id),
-      `Matricula ${matricula.id} confirmada com sucesso.`
-    );
+    this.runMatriculaAction(this.matriculasService.confirm(matricula.id), `Matricula ${matricula.id} confirmada com sucesso.`);
   }
 
   private cancelMatricula(matricula: MatriculaViewModel): void {
-    this.runMatriculaAction(
-      this.matriculasService.cancel(matricula.id),
-      `Matricula ${matricula.id} cancelada com sucesso.`
-    );
+    this.runMatriculaAction(this.matriculasService.cancel(matricula.id), `Matricula ${matricula.id} cancelada com sucesso.`);
   }
 
   private runMatriculaAction(request$: ReturnType<MatriculasService['confirm']>, successMessage: string): void {
@@ -579,6 +449,7 @@ export class MatriculasPageComponent {
       .subscribe({
         next: matricula => {
           this.successMessage.set(successMessage);
+          this.applyMatriculaMutation(matricula);
           this.refreshAfterMutation(matricula.alunoId, matricula.turmaId);
         },
         error: error => {
@@ -597,6 +468,15 @@ export class MatriculasPageComponent {
     if (this.selectedTurmaId() === turmaId) {
       this.fetchMatriculasByTurma(turmaId);
     }
+  }
+
+  private applyMatriculaMutation(matricula: Matricula): void {
+    this.matriculasAluno.update(items => this.replaceMatricula(items, matricula));
+    this.matriculasTurma.update(items => this.replaceMatricula(items, matricula));
+  }
+
+  private replaceMatricula(items: Matricula[], matricula: Matricula): Matricula[] {
+    return items.map(item => (item.id === matricula.id ? { ...item, ...matricula } : item));
   }
 
   private enrichMatricula(matricula: Matricula): MatriculaViewModel {

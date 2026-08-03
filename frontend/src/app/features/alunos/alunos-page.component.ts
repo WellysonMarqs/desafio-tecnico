@@ -1,119 +1,108 @@
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { finalize } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Router, RouterLink } from '@angular/router';
+import { finalize } from 'rxjs';
 
 import { ApiRequestError } from '../../core/api/api-error.interceptor';
 import { FeedbackBannerComponent } from '../../shared/ui/feedback-banner.component';
 import { PageHeaderComponent } from '../../shared/ui/page-header.component';
 import { PageStateComponent } from '../../shared/ui/page-state.component';
-import { Aluno, AlunoPayload } from './aluno.model';
+import { Aluno } from './aluno.model';
 import { AlunosService } from './alunos.service';
 
 @Component({
   selector: 'app-alunos-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageHeaderComponent, PageStateComponent, FeedbackBannerComponent],
+  imports: [CommonModule, RouterLink, PageHeaderComponent, PageStateComponent, FeedbackBannerComponent],
   template: `
     <section class="feature-page">
       <app-page-header
         title="Alunos"
-        description="Cadastre e mantenha a base de alunos usada nas futuras matriculas."
+        description="Tela dedicada de listagem para acompanhamento da base academica e acesso rapido aos detalhes."
       />
 
       <app-feedback-banner [message]="successMessage()" tone="success" />
       <app-feedback-banner [message]="errorMessage()" tone="error" />
 
-      <div class="feature-grid">
-        <section class="card" aria-labelledby="aluno-form-title">
-          <div class="section-heading">
-            <h3 id="aluno-form-title">{{ editingId() ? 'Editar aluno' : 'Novo aluno' }}</h3>
-            @if (editingId()) {
-              <button type="button" class="ghost-button" (click)="cancelEdit()">Cancelar edicao</button>
-            }
+      <section class="overview-grid" aria-label="Indicadores de alunos">
+        <article class="overview-card">
+          <span class="overview-label">Total cadastrado</span>
+          <strong>{{ alunos().length }}</strong>
+          <p>Base disponivel para o fluxo de matriculas.</p>
+        </article>
+        <article class="overview-card">
+          <span class="overview-label">Com e-mail institucional</span>
+          <strong>{{ institutionEmailCount() }}</strong>
+          <p>Indicador simples de padrao de contato.</p>
+        </article>
+      </section>
+
+      <section class="card" aria-labelledby="alunos-list-title">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Base academica</p>
+            <h3 id="alunos-list-title">Listagem de alunos</h3>
           </div>
-
-          <form [formGroup]="form" (ngSubmit)="submit()" class="entity-form">
-            <label>
-              <span>Nome</span>
-              <input type="text" formControlName="nome" />
-            </label>
-
-            <label>
-              <span>E-mail</span>
-              <input type="email" formControlName="email" />
-            </label>
-
-            <label>
-              <span>Matricula</span>
-              <input type="text" formControlName="matricula" />
-            </label>
-
-            @if (form.invalid && form.touched) {
-              <p class="field-error" role="alert">Preencha nome, e-mail valido e matricula.</p>
-            }
-
-            <button type="submit" [disabled]="form.invalid || saving()">
-              {{ saving() ? 'Salvando...' : editingId() ? 'Atualizar aluno' : 'Criar aluno' }}
-            </button>
-          </form>
-        </section>
-
-        <section class="card" aria-labelledby="alunos-list-title">
-          <div class="section-heading">
-            <h3 id="alunos-list-title">Lista de alunos</h3>
+          <div class="section-actions">
             <button type="button" class="ghost-button" (click)="loadAlunos()" [disabled]="loading()">Recarregar</button>
+            <a class="secondary-button" routerLink="/alunos/cadastro">Novo aluno</a>
           </div>
+        </div>
 
-          @if (loading()) {
-            <app-page-state title="Carregando alunos" description="Buscando dados atualizados na API." />
-          } @else if (hasLoadError()) {
-            <app-page-state
-              title="Falha ao carregar alunos"
-              [description]="errorMessage() || 'Verifique a disponibilidade da API e tente novamente.'"
-              tone="error"
-              actionLabel="Tentar novamente"
-              [action]="loadAlunos"
-            />
-          } @else if (!alunos().length) {
-            <app-page-state title="Nenhum aluno cadastrado" description="Crie o primeiro aluno para iniciar o cadastro base." />
-          } @else {
-            <div class="table-wrapper">
-              <table>
-                <caption class="sr-only">Tabela de alunos cadastrados</caption>
-                <thead>
+        @if (loading()) {
+          <app-page-state title="Carregando alunos" description="Buscando dados atualizados na API." />
+        } @else if (hasLoadError()) {
+          <app-page-state
+            title="Falha ao carregar alunos"
+            [description]="errorMessage() || 'Verifique a disponibilidade da API e tente novamente.'"
+            tone="error"
+            actionLabel="Tentar novamente"
+            [action]="loadAlunos"
+          />
+        } @else if (!alunos().length) {
+          <app-page-state
+            title="Nenhum aluno cadastrado"
+            description="Use a tela de cadastro para iniciar a base de alunos do sistema academico."
+            actionLabel="Abrir cadastro"
+            [action]="openCreatePage"
+          />
+        } @else {
+          <div class="table-wrapper">
+            <table>
+              <caption class="sr-only">Tabela de alunos cadastrados</caption>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>E-mail</th>
+                  <th>Matricula</th>
+                  <th>Acoes</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (aluno of alunos(); track aluno.id) {
                   <tr>
-                    <th>Nome</th>
-                    <th>E-mail</th>
-                    <th>Matricula</th>
-                    <th>Acoes</th>
+                    <td>{{ aluno.nome }}</td>
+                    <td>{{ aluno.email }}</td>
+                    <td>{{ aluno.matricula }}</td>
+                    <td class="actions-cell">
+                      <a class="ghost-button" [routerLink]="['/alunos', aluno.id]">Detalhes</a>
+                      <a class="ghost-button" [routerLink]="['/alunos/cadastro', aluno.id]">Editar</a>
+                      <button type="button" class="danger-button" (click)="remove(aluno)" [disabled]="saving()">Excluir</button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  @for (aluno of alunos(); track aluno.id) {
-                    <tr>
-                      <td>{{ aluno.nome }}</td>
-                      <td>{{ aluno.email }}</td>
-                      <td>{{ aluno.matricula }}</td>
-                      <td class="actions-cell">
-                        <button type="button" class="ghost-button" (click)="startEdit(aluno)">Editar</button>
-                        <button type="button" class="danger-button" (click)="remove(aluno)" [disabled]="saving()">Excluir</button>
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          }
-        </section>
-      </div>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
     </section>
   `
 })
 export class AlunosPageComponent {
-  private readonly fb = inject(FormBuilder);
   private readonly alunosService = inject(AlunosService);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly alunos = signal<Aluno[]>([]);
@@ -121,18 +110,18 @@ export class AlunosPageComponent {
   readonly saving = signal(false);
   readonly hasLoadError = signal(false);
   readonly errorMessage = signal('');
-  readonly successMessage = signal('');
-  readonly editingId = signal<number | null>(null);
-
-  readonly form = this.fb.nonNullable.group({
-    nome: ['', [Validators.required, Validators.maxLength(120)]],
-    email: ['', [Validators.required, Validators.email, Validators.maxLength(160)]],
-    matricula: ['', [Validators.required, Validators.maxLength(40)]]
-  });
+  readonly successMessage = signal(typeof history.state?.successMessage === 'string' ? history.state.successMessage : '');
 
   constructor() {
     this.loadAlunos();
   }
+
+  readonly openCreatePage = (): void => {
+    void this.router.navigate(['/alunos/cadastro']);
+  };
+
+  readonly institutionEmailCount = (): number =>
+    this.alunos().filter(aluno => aluno.email.includes('.edu') || aluno.email.includes('.ac.')).length;
 
   loadAlunos = (): void => {
     this.loading.set(true);
@@ -157,49 +146,6 @@ export class AlunosPageComponent {
       });
   };
 
-  submit(): void {
-    this.form.markAllAsTouched();
-    this.successMessage.set('');
-    this.errorMessage.set('');
-
-    if (this.form.invalid) {
-      return;
-    }
-
-    const payload = this.form.getRawValue() as AlunoPayload;
-    const request$ = this.editingId()
-      ? this.alunosService.update(this.editingId() as number, payload)
-      : this.alunosService.create(payload);
-
-    this.saving.set(true);
-
-    request$
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.saving.set(false))
-      )
-      .subscribe({
-        next: () => {
-          this.successMessage.set(this.editingId() ? 'Aluno atualizado com sucesso.' : 'Aluno criado com sucesso.');
-          this.cancelEdit();
-          this.loadAlunos();
-        },
-        error: error => this.errorMessage.set(this.describeError(error))
-      });
-  }
-
-  startEdit(aluno: Aluno): void {
-    this.editingId.set(aluno.id);
-    this.form.setValue({ nome: aluno.nome, email: aluno.email, matricula: aluno.matricula });
-    this.successMessage.set('');
-    this.errorMessage.set('');
-  }
-
-  cancelEdit(): void {
-    this.editingId.set(null);
-    this.form.reset({ nome: '', email: '', matricula: '' });
-  }
-
   remove(aluno: Aluno): void {
     const confirmed = window.confirm(`Deseja remover o aluno ${aluno.nome}?`);
     if (!confirmed) {
@@ -218,9 +164,6 @@ export class AlunosPageComponent {
       )
       .subscribe({
         next: () => {
-          if (this.editingId() === aluno.id) {
-            this.cancelEdit();
-          }
           this.successMessage.set('Aluno removido com sucesso.');
           this.loadAlunos();
         },

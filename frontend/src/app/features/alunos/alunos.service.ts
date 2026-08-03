@@ -14,6 +14,10 @@ export class AlunosService {
     return this.http.get<Aluno[]>(this.resourceUrl);
   }
 
+  getById(id: number): Observable<Aluno> {
+    return this.http.get<Aluno>(`${this.resourceUrl}/${id}`);
+  }
+
   create(payload: AlunoPayload): Observable<Aluno> {
     return this.http.post<Aluno>(this.resourceUrl, payload);
   }

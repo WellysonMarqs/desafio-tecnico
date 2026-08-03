@@ -14,6 +14,10 @@ export class DisciplinasService {
     return this.http.get<Disciplina[]>(this.resourceUrl);
   }
 
+  getById(id: number): Observable<Disciplina> {
+    return this.http.get<Disciplina>(`${this.resourceUrl}/${id}`);
+  }
+
   create(payload: DisciplinaPayload): Observable<Disciplina> {
     return this.http.post<Disciplina>(this.resourceUrl, payload);
   }

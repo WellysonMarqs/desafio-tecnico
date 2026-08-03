@@ -5,6 +5,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -25,7 +27,8 @@ public class OutboxEvento {
     @Column(name = "agregado_id", nullable = false, length = 100)
     private String agregadoId;
 
-    @Column(name = "payload", nullable = false, columnDefinition = "CLOB")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "payload", nullable = false, columnDefinition = "jsonb")
     private String payload;
 
     @Column(name = "correlation_id", nullable = false, length = 100)

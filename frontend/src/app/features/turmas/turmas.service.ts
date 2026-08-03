@@ -14,6 +14,10 @@ export class TurmasService {
     return this.http.get<Turma[]>(this.resourceUrl);
   }
 
+  getById(id: number): Observable<Turma> {
+    return this.http.get<Turma>(`${this.resourceUrl}/${id}`);
+  }
+
   create(payload: TurmaPayload): Observable<Turma> {
     return this.http.post<Turma>(this.resourceUrl, payload);
   }

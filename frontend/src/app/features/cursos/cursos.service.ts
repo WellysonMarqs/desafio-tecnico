@@ -14,6 +14,10 @@ export class CursosService {
     return this.http.get<Curso[]>(this.resourceUrl);
   }
 
+  getById(id: number): Observable<Curso> {
+    return this.http.get<Curso>(`${this.resourceUrl}/${id}`);
+  }
+
   create(payload: CursoPayload): Observable<Curso> {
     return this.http.post<Curso>(this.resourceUrl, payload);
   }
